@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Tenant A Database
+  postgres_db1:
+    image: postgres:15-alpine
+    container_name: p2_postgres_db1
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: tenant_a
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./volumes/db1:/var/lib/postgresql/data
+      - ./postgres/schema/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped
+
+  # Tenant B Database
+  postgres_db2:
+    image: postgres:15-alpine
+    container_name: p2_postgres_db2
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: rootpassword
+      POSTGRES_DB: tenant_b
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./volumes/db2:/var/lib/postgresql/data
+      - ./postgres/schema/init.sql:/docker-entrypoint-initdb.d/init.sql
+    restart: unless-stopped

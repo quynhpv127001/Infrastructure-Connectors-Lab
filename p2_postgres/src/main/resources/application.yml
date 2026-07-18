@@ -1,0 +1,35 @@
+# Cấu hình tường minh, KHÔNG dùng cấu hình mặc định (spring.datasource.*)
+# Tuân thủ quy tắc Explicit Configuration
+
+server:
+  port: 8082 # Mỗi bài thực hành chạy một port khác nhau để tránh đụng
+
+# Cấu hình Tenant A (DB 1)
+custom:
+  datasource:
+    db1:
+      url: jdbc:postgresql://localhost:5432/tenant_a
+      username: root
+      password: rootpassword
+      driver-class-name: org.postgresql.Driver
+      # HikariCP configurations
+      pool-name: HikariPool-TenantA
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+# Cấu hình Tenant B (DB 2)
+    db2:
+      url: jdbc:postgresql://localhost:5433/tenant_b
+      username: root
+      password: rootpassword
+      driver-class-name: org.postgresql.Driver
+      # HikariCP configurations
+      pool-name: HikariPool-TenantB
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000

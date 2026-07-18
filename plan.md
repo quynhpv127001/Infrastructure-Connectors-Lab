@@ -49,9 +49,9 @@ Dựa trên kinh nghiệm từ Phase 1, toàn bộ các phase sau (từ 2 đến
 - Các thao tác UI mapping chuẩn xác xuống API tương ứng (đã test thành công với in-memory fallback khi DB down).
 - Không có exception hay timeout block UI.
 
-## Phase 2: Relational & Object-Relational Database (PostgreSQL)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
-- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
+## Phase 2: Relational & Object-Relational Database (PostgreSQL) (DONE)
+- [x] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [x] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ---
 ### NHÓM 2: IN-MEMORY DATA STORE & CACHE
