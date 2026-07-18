@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # Tenant A / DB 1 (Primary)
+  mysql-db1:
+    image: mysql:8.0.41
+    container_name: mysql-db1
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tenant_a_db
+      MYSQL_USER: userA
+      MYSQL_PASSWORD: passA
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./volumes/db1:/var/lib/mysql
+      - ./mysql/schema/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  # Tenant B / DB 2 (Secondary)
+  mysql-db2:
+    image: mysql:8.0.41
+    container_name: mysql-db2
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tenant_b_db
+      MYSQL_USER: userB
+      MYSQL_PASSWORD: passB
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./volumes/db2:/var/lib/mysql
+      - ./mysql/schema/init.sql:/docker-entrypoint-initdb.d/init.sql:ro

@@ -5,10 +5,24 @@ Bản kế hoạch này bao quát toàn bộ các hệ thống hạ tầng (Infr
 *Hướng dẫn: Khi hoàn thành phần nào, hãy đánh dấu `[x]` thay cho `[ ]`.*
 
 ---
-### TIÊU CHUẨN KIẾN TRÚC BẮT BUỘC (CORE ARCHITECTURE STANDARD)
-Dự án bao gồm nhiều thư mục, **mỗi thư mục là một dự án Spring Boot hoàn toàn độc lập (không dùng chung Root pom.xml)**. Mọi dự án đều **PHẢI** cấu hình theo kiến trúc **Multi-Connector / Multi-Tenant**. 
-- **Yêu cầu kết nối đa luồng:** Tuyệt đối không dùng cấu hình auto-configuration mặc định (single connection) sơ sài. Phải tự định nghĩa các `@Bean` kết nối. Ví dụ: Khi làm về MySQL, phải tạo 2 bean `DataSource` trỏ đến 2 DB khác nhau; Làm về Redis, tạo 2 `RedisTemplate` riêng biệt.
-- **Minh bạch cấu hình (Explicit Configuration):** Bắt buộc sử dụng `@Value` để tiêm (inject) rõ ràng từng giá trị cấu hình từ `application.yml` vào các class Config. Tuyệt đối KHÔNG dùng tính năng tự động map (ví dụ `@ConfigurationProperties`) để tránh việc framework "che giấu" (magic) quá trình gán biến, giúp người đọc kiểm soát chính xác tham số nào đang được dùng.
+### TỔNG HỢP CÁC QUY TẮC BẮT BUỘC CHO TẤT CẢ CÁC PHASE (GLOBAL STANDARDS)
+Dựa trên kinh nghiệm từ Phase 1, toàn bộ các phase sau (từ 2 đến 16) bắt buộc phải tuân thủ nghiêm ngặt các quy tắc sau:
+
+1. **Kiến trúc & Cấu hình Code**
+   - **Độc Lập Hoàn Toàn**: Mỗi hạ tầng phải là một dự án Spring Boot Maven riêng biệt (không dùng chung Root pom.xml).
+   - **Tiêm Cấu Hình Thủ Công (Explicit Configuration)**: Bắt buộc sử dụng `@Value` để inject rõ ràng từng dòng cấu hình từ `application.yml` vào các class Config. 
+   - **Không Dùng Auto-Configuration**: Tuyệt đối không dùng cấu hình mặc định sơ sài hoặc tính năng tự map (`@ConfigurationProperties`). Mọi đối tượng kết nối (DataSource, RedisTemplate...) phải được cấu hình thủ công bằng `@Bean`.
+
+2. **Giao Diện & API Mặc Định (Thymeleaf)**
+   - **Chuẩn 5 API**: Mỗi phase bắt buộc phải cung cấp đủ 5 đầu API CRUD cơ bản: `Create`, `Read`, `Update`, `Delete`, và `Search`. KHÔNG làm hời hợt, KHÔNG đi sâu vào các tính năng nâng cao (Replication, Transaction, Batch...) nếu không có yêu cầu.
+   - **Trực Quan Hóa (UI)**: Bắt buộc cung cấp giao diện trực quan minh họa cho kiến trúc Multi-Tenant.
+   - **Chia Cột Đối Xứng**: Giao diện chia rõ 2 cột (Tenant A và Tenant B) để chứng minh 2 connection chạy song song độc lập.
+   - **Thẩm Mỹ Cao**: Giao diện phải đẹp, dùng Dark Mode, Glassmorphism, hoặc các style hiện đại tương tự. Hỗ trợ cơ chế Mock Fallback (Try-Catch in-memory) để test UI mượt mà ngay cả khi Database sập.
+
+3. **Đóng Gói Triển Khai (Deployment)**
+   - **Thư Mục `deploy/`**: Mọi file phục vụ hạ tầng (như `docker-compose.yml`, các file `.sh` hoặc `.sql` khởi tạo tự động, `.gitignore`) bắt buộc phải đặt trong thư mục `deploy/`.
+   - **Tự Động Hóa Dữ Liệu**: Phải chủ động thiết lập sẵn các script tạo database, tạo table, import data mẫu (vd: `init.sql`). Người dùng chỉ cần gõ `docker compose up -d` là hệ thống phải tự động sẵn sàng chạy mà không cần setup tay.
+   - **Volume Isolation**: Mount volume phải đưa vào thư mục `deploy/volumes/` và đảm bảo `.gitignore` (bên trong thư mục deploy) chặn không đẩy file dữ liệu lên Git.
 ---
 
 ## Phase 0: Xây dựng Nền tảng (Project Foundation)
@@ -21,114 +35,98 @@ Dự án bao gồm nhiều thư mục, **mỗi thư mục là một dự án Spr
 ### NHÓM 1: CƠ SỞ DỮ LIỆU QUAN HỆ (RDBMS)
 *Đây là trái tim của đa số hệ thống Backend, lưu trữ các dữ liệu core mang tính giao dịch.*
 
-## Phase 1: Relational Database (MySQL)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p1_mysql/jdbc`: Cấu hình kết nối thuần và `JdbcTemplate`.
-- [ ] 3. `p1_mysql/hikari`: Tối ưu hoá Connection Pool (HikariCP).
-- [ ] 4. `p1_mysql/transaction`: Xử lý ACID, Isolation Levels và Deadlock.
-- [ ] 5. `p1_mysql/batch`: Tối ưu Batch Insert/Update hàng triệu bản ghi.
-- [ ] 6. `p1_mysql/replication`: Routing tách biệt Master (Write) - Slave (Read).
+### Phase 1: Kiến trúc Multi-Tenant Cơ bản với MySQL (DONE)
+**Mục tiêu**: Xây dựng nền tảng đa kết nối (multi-tenant) cơ bản nhất với MySQL, minh họa việc 1 worker xử lý dữ liệu cho 2 khách hàng khác nhau.
+
+**Các bước thực hiện:**
+- Thiết lập 2 database MySQL riêng biệt (bằng docker-compose).
+- Cấu hình Spring Boot xử lý 2 DataSource độc lập bằng cách định nghĩa các `@Bean` thủ công thay vì dùng cấu hình auto mặc định. 
+- Viết các API CRUD và Search cơ bản, nhận parameter `tenantId` để route đến đúng Repository.
+- Xây dựng giao diện UI chia 2 cột để minh họa trực quan 5 API cho mỗi Tenant.
+
+**Tiêu chí hoàn thành (DoD):** 
+- Giao diện 2 cột hiển thị đầy đủ form Create, Search, Update, Delete.
+- Các thao tác UI mapping chuẩn xác xuống API tương ứng (đã test thành công với in-memory fallback khi DB down).
+- Không có exception hay timeout block UI.
 
 ## Phase 2: Relational & Object-Relational Database (PostgreSQL)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p2_postgresql/jsonb`: Tận dụng sức mạnh của kiểu JSONB.
-- [ ] 3. `p2_postgresql/partitioning`: Quản lý Table Partitioning cho dữ liệu lớn.
-- [ ] 4. `p2_postgresql/postgis`: Lưu trữ và truy vấn dữ liệu không gian (Geospatial).
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ---
 ### NHÓM 2: IN-MEMORY DATA STORE & CACHE
 *Các hệ thống lưu trữ trên RAM, sinh ra để xử lý các bài toán độ trễ siêu thấp (sub-millisecond) và giảm tải cho Database chính.*
 
 ## Phase 3: In-Memory Data Store (Redis)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p3_redis/string`: Data structure căn bản, kiến trúc Cache-aside, giới hạn RAM.
-- [ ] 3. `p3_redis/hash` & `p3_redis/list`: Mapping object và thiết kế Message Queue đơn giản.
-- [ ] 4. `p3_redis/set` & `p3_redis/zset`: Xử lý tập hợp, bảng xếp hạng (Leaderboard).
-- [ ] 5. `p3_redis/pubsub` & `p3_redis/stream`: Event-driven và Stream processing nhỏ.
-- [ ] 6. `p3_redis/lock`: Distributed Lock (Redisson) giải quyết Race Condition.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 4: High-Performance Key-Value Store (Aerospike)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p4_aerospike/basic`: Cấu hình kết nối, CRUD với Namespace, Set và Record.
-- [ ] 3. `p4_aerospike/indexes`: Tối ưu Secondary Index và truy vấn tốc độ cao.
-- [ ] 4. `p4_aerospike/udf`: Chạy User-Defined Functions (UDF) trực tiếp trên server để giảm I/O.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ---
 ### NHÓM 3: CƠ SỞ DỮ LIỆU NOSQL (DOCUMENT, WIDE-COLUMN, GRAPH, TIME-SERIES)
 *Nhóm cơ sở dữ liệu phi quan hệ, phục vụ các bài toán thiết kế linh hoạt, đọc/ghi lượng lớn hoặc cấu trúc dữ liệu đặc thù.*
 
 ## Phase 5: Document NoSQL Database (MongoDB)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p5_mongodb/documents`: Indexing và CRUD trên Document.
-- [ ] 3. `p5_mongodb/aggregation`: Aggregation Pipeline mạnh mẽ.
-- [ ] 4. `p5_mongodb/transactions`: Multi-document ACID transactions.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 6: Wide-Column Store NoSQL (Cassandra)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p6_cassandra/modeling`: Query-driven data modeling, Partition/Clustering keys.
-- [ ] 3. `p6_cassandra/consistency`: Tối ưu Tunable Consistency (Quorum, Local_Quorum).
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 7: Big Data Wide-Column Store (HBase)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p7_hbase/rowkey`: Nguyên tắc thiết kế Rowkey chống Hotspotting.
-- [ ] 3. `p7_hbase/operations`: Put, Get, Scan dữ liệu lớn.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 8: Graph Database (Neo4j)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p8_neo4j/cypher`: Các thao tác Node, Relationship. Tối ưu truy vấn đồ thị.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 9: Time-Series Database (InfluxDB)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p9_influxdb/metrics`: Ghi luồng dữ liệu thời gian thực (Push-based), Retention policies.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 10: Monitoring Time-Series (Prometheus)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p10_prometheus/actuator`: Tích hợp Spring Boot Actuator & Micrometer để Expose metrics (Pull-based).
-- [ ] 3. `p10_prometheus/custom-metrics`: Định nghĩa Custom Counter, Gauge, Timer cho nghiệp vụ Backend.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ---
 ### NHÓM 4: MESSAGE BROKER & EVENT STREAMING
 *Xương sống của kiến trúc Microservices và Data Pipeline, đảm nhận việc giao tiếp bất đồng bộ và truyền tải dữ liệu.*
 
 ## Phase 11: Distributed Event Streaming (Kafka)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p11_kafka/producer`: Tối ưu throughput (Acks, Batch, Compression).
-- [ ] 3. `p11_kafka/consumer`: Consumer Groups, Auto vs Manual Offset Commit.
-- [ ] 4. `p11_kafka/transaction`: Exactly-Once semantics.
-- [ ] 5. `p11_kafka/retry-dlq`: Xử lý lỗi với Dead Letter Queue (DLQ).
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 12: Traditional Message Broker (RabbitMQ)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p12_rabbitmq/exchanges`: Các mô hình routing (Direct, Fanout, Topic, Headers).
-- [ ] 3. `p12_rabbitmq/dlx`: Dead Letter Exchanges và Xử lý Delayed Message.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ---
 ### NHÓM 5: SEARCH ENGINE & ANALYTICS
 *Chuyên trị các bài toán tìm kiếm toàn văn bản (Full-text) và phân tích thống kê siêu tốc trên lượng dữ liệu khổng lồ.*
 
 ## Phase 13: Search Engine & Analytics (Elasticsearch)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p13_elasticsearch/indexing`: Quản lý Index lifecycle và Mapping.
-- [ ] 3. `p13_elasticsearch/searching`: Text search, Match, Term, Filters.
-- [ ] 4. `p13_elasticsearch/aggregation`: Phân tích thống kê (Bucketing, Metrics).
-- [ ] 5. `p13_elasticsearch/bulk`: Tối ưu Bulk indexing.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 14: Real-time OLAP Database (ClickHouse)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p14_clickhouse/engines`: Cấu hình MergeTree, ReplacingMergeTree, CollapsingMergeTree.
-- [ ] 3. `p14_clickhouse/olap`: Truy vấn phân tích tổng hợp (Aggregation) khối lượng siêu lớn.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ---
 ### NHÓM 6: STORAGE SYSTEMS
 *Giải quyết bài toán lưu trữ file tĩnh (hình ảnh, video, log) và dữ liệu Big Data thô.*
 
 ## Phase 15: Object Storage (MinIO)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p15_minio/basic`: Bucket policy, Put/Get object, Presigned URL.
-- [ ] 3. `p15_minio/multipart`: Chia nhỏ file lớn để upload song song (Multipart Upload).
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 ## Phase 16: Distributed File System (HDFS)
-- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml`.
-- [ ] 2. `p16_hdfs/webhdfs`: Đọc/Ghi file lớn thông qua REST API/Native Java Client.
+- [ ] 1. Khởi tạo dự án Spring Boot độc lập (pom.xml) và `docker-compose.yml` theo chuẩn Multi-Tenant.
+- [ ] 2. Triển khai giao diện quản lý (Thymeleaf) trực quan hóa 5 thao tác: Create, Read, Update, Delete, Search cho 2 luồng connection.
 
 

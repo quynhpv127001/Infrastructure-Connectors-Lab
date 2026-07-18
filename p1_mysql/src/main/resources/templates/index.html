@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Tenant Dashboard - Phase 1: MySQL</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <h1>Infrastructure Connectors Lab</h1>
+        <p>Phase 1: MySQL Multi-Tenant Architecture Visualization</p>
+    </header>
+
+    <main class="dashboard">
+        <!-- Cột Trái: Tenant A -->
+        <section class="tenant-column tenant-a">
+            <div class="tenant-header">
+                <h2>Tenant A (DB 1)</h2>
+                <span class="badge badge-primary">Port: 3306</span>
+            </div>
+
+            <!-- Form Create -->
+            <div class="card form-card">
+                <h3>Create User</h3>
+                <form action="/add" method="post">
+                    <input type="hidden" name="tenant" value="tenantA">
+                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="email" name="email" placeholder="Email" required>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </form>
+            </div>
+
+            <!-- Form Search -->
+            <div class="card form-card">
+                <h3>Search Users</h3>
+                <form action="/" method="get">
+                    <div class="search-group">
+                        <input type="text" name="searchA" th:value="${searchA}" placeholder="Search username or email...">
+                        <button type="submit" class="btn btn-secondary">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Bảng Dữ liệu -->
+            <div class="card data-card">
+                <h3>User Data (Read, Update, Delete)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="user : ${usersA}">
+                            <td th:text="${user.id}">1</td>
+                            <td th:text="${user.username}">John</td>
+                            <td th:text="${user.email}">john@abc.com</td>
+                            <td class="actions">
+                                <form action="/update" method="post" class="inline-form update-form">
+                                    <input type="hidden" name="tenant" value="tenantA">
+                                    <input type="hidden" name="id" th:value="${user.id}">
+                                    <input type="text" name="username" th:value="${user.username}" class="small-input" placeholder="Name">
+                                    <input type="text" name="email" th:value="${user.email}" class="small-input" placeholder="Email">
+                                    <button type="submit" class="btn-icon btn-update" title="Update">✏️ Save</button>
+                                </form>
+                                <form action="/delete" method="post" class="inline-form delete-form">
+                                    <input type="hidden" name="tenant" value="tenantA">
+                                    <input type="hidden" name="id" th:value="${user.id}">
+                                    <button type="submit" class="btn-icon btn-delete" title="Delete">🗑️ Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(usersA)}">
+                            <td colspan="4" class="empty-state">No users found in Tenant A.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Cột Phải: Tenant B -->
+        <section class="tenant-column tenant-b">
+            <div class="tenant-header">
+                <h2>Tenant B (DB 2)</h2>
+                <span class="badge badge-accent">Port: 3307</span>
+            </div>
+
+            <!-- Form Create -->
+            <div class="card form-card">
+                <h3>Create User</h3>
+                <form action="/add" method="post">
+                    <input type="hidden" name="tenant" value="tenantB">
+                    <input type="text" name="username" placeholder="Username" required>
+                    <input type="email" name="email" placeholder="Email" required>
+                    <button type="submit" class="btn btn-accent">Create</button>
+                </form>
+            </div>
+
+            <!-- Form Search -->
+            <div class="card form-card">
+                <h3>Search Users</h3>
+                <form action="/" method="get">
+                    <div class="search-group">
+                        <input type="text" name="searchB" th:value="${searchB}" placeholder="Search username or email...">
+                        <button type="submit" class="btn btn-secondary">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Bảng Dữ liệu -->
+            <div class="card data-card">
+                <h3>User Data (Read, Update, Delete)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="user : ${usersB}">
+                            <td th:text="${user.id}">1</td>
+                            <td th:text="${user.username}">Jane</td>
+                            <td th:text="${user.email}">jane@xyz.com</td>
+                            <td class="actions">
+                                <form action="/update" method="post" class="inline-form update-form">
+                                    <input type="hidden" name="tenant" value="tenantB">
+                                    <input type="hidden" name="id" th:value="${user.id}">
+                                    <input type="text" name="username" th:value="${user.username}" class="small-input" placeholder="Name">
+                                    <input type="text" name="email" th:value="${user.email}" class="small-input" placeholder="Email">
+                                    <button type="submit" class="btn-icon btn-update" title="Update">✏️ Save</button>
+                                </form>
+                                <form action="/delete" method="post" class="inline-form delete-form">
+                                    <input type="hidden" name="tenant" value="tenantB">
+                                    <input type="hidden" name="id" th:value="${user.id}">
+                                    <button type="submit" class="btn-icon btn-delete" title="Delete">🗑️ Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(usersB)}">
+                            <td colspan="4" class="empty-state">No users found in Tenant B.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
